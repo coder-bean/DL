@@ -3,10 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import math
 
-e=math.e
 #part b1:
 
-x=np.linspace(-2*np.pi, 2*np.pi,1000)
+x=np.linspace(-2*np.pi, 2*np.pi,1000).reshape(-1,1)
 y=np.sin(x)
 
     #splitting into 4 equal parts:
@@ -24,18 +23,28 @@ plot.legend()
 
 #defining the activation functions and it's derivative
 def tanh(x):
-    return (e**x-e**(-x))/(e**x+e**(-x))
+    return np.tanh(x)
+
 def ddxtanhx(x):
     return (1/np.cosh(x)**2)
 
 class NeuralNetwork:
     #initialize weights
-    def __init__(self, input_size, h1_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size):
         self.weights_hidden_input=np.random.randn(input_size, hidden_size)
-        self.weights_hidden_output=np.random.randn(output_size, hidden_size)
-        self.bias_hidden=np.random.randn(input_size, hidden_size)
-        self.bias_output=np.random.randn(output_size, hidden_size)
+        self.weights_hidden_output=np.random.randn(hidden_size, output_size)
+        self.bias_hidden=np.random.randn(1, hidden_size)
+        self.bias_output=np.random.randn(1, output_size)
 
+
+    def forward(self, x):
+        self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
+        self.hidden_layer_output=tanh(self.hidden_layer_input)
+        self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
+        self.output=tanh(self.output_layer_input)      
+        return self.output
+    
+    
 
     def backward(self,x,y,learning_rate):
         #error calculation
@@ -51,12 +60,6 @@ class NeuralNetwork:
         self.weights_input_hidden += x.T.dot(hidden_delta) * learning_rate
         self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
 
-    def forward(self, x):
-        self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
-        self.hidden_layer_output=tanh(self.hidden_layer_input)
-        self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
-        self.output=tanh(self.output_layer_input)      
-        return self.output
     def train(self, x, y, epochs, learning_rate):
         for epoch in range(epochs):
             self.forward(x)
@@ -71,4 +74,4 @@ nn.train(x,y, epochs=1000, learning_rate=0.01)
 
 
 
-plot.plot(x,nn)
+plot.plot(x,nn.output)
