@@ -63,3 +63,12 @@ class NeuralNetwork:
             self.backward(x, y, learning_rate)
             loss = np.mean(np.square(y - self.output))
             print(f'Loss: {loss}')
+
+#creating nn
+
+nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
+nn.train(x,y, epochs=1000, learning_rate=0.01)
+
+
+
+plot.plot(x,nn)
