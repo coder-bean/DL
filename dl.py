@@ -114,7 +114,6 @@ nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001)
 predicted_y_normalized = nn.forward(x_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
 
-plot.plot(x_normalized,predicted_y)
 
 # Create a GIF from the saved images
 with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
