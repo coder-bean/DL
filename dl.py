@@ -35,7 +35,6 @@ class NeuralNetwork:
         self.weights_hidden_output=np.random.randn(output_size, hidden_size)
         self.bias_hidden=np.random.randn(input_size, hidden_size)
         self.bias_output=np.random.randn(output_size, hidden_size)
-        self.bias_output=np.random.randn(output_size, hidden_size)
 
     def forward(self, x):
         self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
