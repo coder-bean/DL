@@ -3,10 +3,31 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import math
 
-#part b1:
+
+def normalize(data, actual_min, actual_max):
+    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
+    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
+    return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
+
+def denormalize(data, actual_min, actual_max):
+    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
+    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
+    return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
 
 x=np.linspace(-2*np.pi, 2*np.pi,1000).reshape(-1,1)
 y=np.sin(x)
+
+x_min, x_max = np.min(x), np.max(x)
+y_min, y_max = np.min(y), np.max(y)
+
+x_normalized = normalize(x, x_min, x_max)
+y_normalized = normalize(y, y_min, y_max)
+#part b1:
+
+
+
+
+
 
     #splitting into 4 equal parts:
 split_x=np.split(x,4)
@@ -18,7 +39,7 @@ x_validation = np.random.uniform(-2*np.pi,2*np.pi,300)
 #ANN TO GENERATE Y-VALS
 
 #part b3:
-plot.plot(x,y, label='Sine Wave')
+plot.plot(x_normalized, y_normalized, label='Normalized Sine Wave')
 plot.legend()
 
 #defining the activation functions and it's derivative
@@ -70,8 +91,11 @@ class NeuralNetwork:
 #creating nn
 
 nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
-nn.train(x,y, epochs=1000, learning_rate=0.001)
+nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001)
 
 
 
-plot.plot(x,nn.output)
+predicted_y_normalized = nn.forward(x_normalized)
+predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
+
+plot.plot(x_normalized,predicted_y)
