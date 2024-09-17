@@ -26,7 +26,7 @@ plot.legend()
 def tanh(x):
     return (e**x-e**(-x))/(e**x+e**(-x))
 def ddxtanhx(x):
-    return (1/math.cosh(x)**2)
+    return (1/np.cosh(x)**2)
 
 class NeuralNetwork:
     #initialize weights
@@ -57,4 +57,9 @@ class NeuralNetwork:
         self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
         self.output=tanh(self.output_layer_input)      
         return self.output
-
+    def train(self, x, y, epochs, learning_rate):
+        for epoch in range(epochs):
+            self.forward(x)
+            self.backward(x, y, learning_rate)
+            loss = np.mean(np.square(y - self.output))
+            print(f'Loss: {loss}')
