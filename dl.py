@@ -4,7 +4,7 @@ import matplotlib.pyplot as plot
 
 #part b1:
 
-x=(-2*np.pi, 2*np.pi,1000)
+x=np.linspace(-2*np.pi, 2*np.pi,1000)
 y=np.sin(x)
 
     #splitting into 4 equal parts:
