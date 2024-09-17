@@ -57,7 +57,7 @@ class NeuralNetwork:
         self.weights_hidden_output += self.hidden_layer_output.T.dot(output_delta) * learning_rate
         self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
         
-        self.weights_input_hidden += x.T.dot(hidden_delta) * learning_rate
+        self.weights_hidden_input += x.T.dot(hidden_delta) * learning_rate
         self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
 
     def train(self, x, y, epochs, learning_rate):
@@ -70,7 +70,7 @@ class NeuralNetwork:
 #creating nn
 
 nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
-nn.train(x,y, epochs=1000, learning_rate=0.01)
+nn.train(x,y, epochs=1000, learning_rate=0.001)
 
 
 
