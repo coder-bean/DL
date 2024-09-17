@@ -35,3 +35,4 @@ class NeuralNetwork:
         self.weights_hidden_output=np.random.randn(output_size, hidden_size)
         self.bias_hidden=np.random.randn(input_size, hidden_size)
         self.bias_output=np.random.randn(output_size, hidden_size)
+        self.bias_output=np.random.randn(output_size, hidden_size)
