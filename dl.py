@@ -70,7 +70,7 @@ class NeuralNetwork:
 #creating nn
 
 nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
-nn.train(x,y, epochs=1000, learning_rate=0.01)
+nn.train(x,y, epochs=1000, learning_rate=0.001)
 
 
 
