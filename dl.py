@@ -36,9 +36,25 @@ class NeuralNetwork:
         self.bias_hidden=np.random.randn(input_size, hidden_size)
         self.bias_output=np.random.randn(output_size, hidden_size)
 
+
+    def backward(self,x,y,learning_rate):
+        #error calculation
+        output_error = y - self.output
+        output_delta = output_error * ddxtanhx(self.output)
+        hidden_error = output_delta.dot(self.weights_hidden_output.T)
+        hidden_delta = hidden_error * ddxtanhx(self.hidden_layer_output)
+
+        #weight and bias update
+        self.weights_hidden_output += self.hidden_layer_output.T.dot(output_delta) * learning_rate
+        self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
+        
+        self.weights_input_hidden += x.T.dot(hidden_delta) * learning_rate
+        self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
+
     def forward(self, x):
         self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
         self.hidden_layer_output=tanh(self.hidden_layer_input)
         self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
         self.output=tanh(self.output_layer_input)      
         return self.output
+
