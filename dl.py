@@ -14,4 +14,10 @@ split_y=np.split(y,4)
 #part b2:
 
 x_validation = np.random.uniform(-2*np.pi,2*np.pi,300)
+#ANN TO GENERATE Y-VALS
+
+#part b3:
+
+plot.plot(x,y)
+
 
