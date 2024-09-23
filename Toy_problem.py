@@ -4,7 +4,7 @@ import matplotlib.pyplot as plot
 import math
 import os
 import imageio
-import imageio.v2 as imageio
+
 output_dir = 'training_plots'
 filenames=[]
 
