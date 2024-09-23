@@ -72,7 +72,6 @@ class NeuralNetwork:
         self.bias_hidden=np.random.randn(1, hidden_size)
         self.bias_output=np.random.randn(1, output_size)
 
-
     def forward(self, x):
         self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
         self.hidden_layer_output=tanh(self.hidden_layer_input)
