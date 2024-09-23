@@ -2,6 +2,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import math
+import os
+import imageio
+
+output_dir = 'training_plots'
+filenames=[]
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 
 def normalize(data, actual_min, actual_max):
@@ -38,9 +46,8 @@ split_y=np.split(y,4)
 x_validation = np.random.uniform(-2*np.pi,2*np.pi,300)
 #ANN TO GENERATE Y-VALS
 
-#part b3:
-plot.plot(x_normalized, y_normalized, label='Normalized Sine Wave')
-plot.legend()
+#part b3:o
+
 
 #defining the activation functions and it's derivative
 def tanh(x):
@@ -83,10 +90,19 @@ class NeuralNetwork:
 
     def train(self, x, y, epochs, learning_rate):
         for epoch in range(epochs):
+            
             self.forward(x)
             self.backward(x, y, learning_rate)
             loss = np.mean(np.square(y - self.output))
             print(f'Loss: {loss}')
+            if(epoch%10==0):
+                plot.plot(x,y, label='True Sine wave')
+                plot.plot(x,self.output, label='approximation at epoch {epoch}')
+                filename = f'training_plots/epoch_{epoch}.png'
+                plot.legend(loc='lower left')
+                filenames.append(filename)
+                plot.savefig(filename)
+                plot.close()
 
 #creating nn
 
@@ -98,4 +114,13 @@ nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001)
 predicted_y_normalized = nn.forward(x_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
 
-plot.plot(x_normalized,predicted_y)
+
+# Create a GIF from the saved images
+with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
+
+# Clean up images after creating the GIF
+for filename in filenames:
+    os.remove(filename)
