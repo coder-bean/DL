@@ -3,6 +3,7 @@ import matplotlib.pyplot as plot
 import os
 import imageio
 import imageio.v2 as imageio
+from ucimlrepo import fetch_ucirepo
 
 # Setup for saving plots
 output_dir = 'training_plots'
@@ -10,6 +11,13 @@ filenames = []
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+# Fetch the dataset
+combined_cycle_power_plant = fetch_ucirepo(id=294)
+
+# Use data from the dataset
+X = combined_cycle_power_plant.data.features
+y = combined_cycle_power_plant.data.targets
 
 # Neural Network with 2 hidden layers
 class NeuralNetwork:
@@ -78,27 +86,27 @@ class NeuralNetwork:
                 plot.savefig(filename)
                 plot.close()
 
-# Step 6: I/O Normalization
+# Normalization function
 def normalize(data, actual_min, actual_max):
     virtual_min = actual_min - 0.05 * (actual_max - actual_min)
     virtual_max = actual_max + 0.05 * (actual_max - actual_min)
     return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
 
+# Denormalization function
 def denormalize(data, actual_min, actual_max):
     virtual_min = actual_min - 0.05 * (actual_max - actual_min)
     virtual_max = actual_max + 0.05 * (actual_max - actual_min)
     return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
 
-# Generate random dataset with 5 features and one output
-np.random.seed(42)
-x = np.random.randn(1000, 5)  # 1000 samples, 5 features
-y = np.sum(x, axis=1).reshape(-1, 1) + np.random.randn(1000, 1) * 0.1  # Target is a noisy sum of inputs
+# Convert the pandas dataframe to numpy arrays
+X = X.values
+y = y.values
 
 # Normalizing the data
-x_min, x_max = np.min(x), np.max(x)
+x_min, x_max = np.min(X), np.max(X)
 y_min, y_max = np.min(y), np.max(y)
 
-x_normalized = normalize(x, x_min, x_max)
+X_normalized = normalize(X, x_min, x_max)
 y_normalized = normalize(y, y_min, y_max)
 
 # Define activation functions and derivatives
@@ -108,16 +116,17 @@ def tanh(x):
 def ddxtanhx(x):
     return 1 - np.tanh(x) ** 2
 
-# Create and train neural network with 2 hidden layers
-nn = NeuralNetwork(input_size=5, hidden_size1=4, hidden_size2=3, output_size=1)
-nn.train(x_normalized, y_normalized, epochs=100, learning_rate=0.01)
+# Create and train the neural network with 2 hidden layers
+input_size = X.shape[1]
+nn = NeuralNetwork(input_size=input_size, hidden_size1=8, hidden_size2=6, output_size=1)
+nn.train(X_normalized, y_normalized, epochs=100, learning_rate=0.01)
 
 # Predict using the trained model
-predicted_y_normalized = nn.forward(x_normalized)
+predicted_y_normalized = nn.forward(X_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
 
 # Create a GIF from the saved images
-with imageio.get_writer('random_dataset_training_2_hidden_layers.gif', mode='I', duration=0.5) as writer:
+with imageio.get_writer('power_plant_training_2_hidden_layers.gif', mode='I', duration=0.5) as writer:
     for filename in filenames:
         image = imageio.imread(filename)
         writer.append_data(image)
@@ -126,4 +135,4 @@ with imageio.get_writer('random_dataset_training_2_hidden_layers.gif', mode='I',
 for filename in filenames:
     os.remove(filename)
 
-print("Training GIF saved as 'random_dataset_training_2_hidden_layers.gif'.")
+print("Training GIF saved as 'power_plant_training_2_hidden_layers.gif'.")
