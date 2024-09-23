@@ -1,11 +1,84 @@
-from ucimlrepo import fetch_ucirepo 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plot
-import math
 import os
 import imageio
+import imageio.v2 as imageio
 
+# Setup for saving plots
+output_dir = 'training_plots'
+filenames = []
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+# Neural Network with 2 hidden layers
+class NeuralNetwork:
+    # Initialize weights and biases
+    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+        self.weights_hidden_input = np.random.randn(input_size, hidden_size1)
+        self.weights_hidden_hidden = np.random.randn(hidden_size1, hidden_size2)
+        self.weights_hidden_output = np.random.randn(hidden_size2, output_size)
+        
+        self.bias_hidden1 = np.random.randn(1, hidden_size1)
+        self.bias_hidden2 = np.random.randn(1, hidden_size2)
+        self.bias_output = np.random.randn(1, output_size)
+
+    # Forward pass
+    def forward(self, x):
+        self.hidden_layer_input1 = np.dot(x, self.weights_hidden_input) + self.bias_hidden1
+        self.hidden_layer_output1 = tanh(self.hidden_layer_input1)
+        
+        self.hidden_layer_input2 = np.dot(self.hidden_layer_output1, self.weights_hidden_hidden) + self.bias_hidden2
+        self.hidden_layer_output2 = tanh(self.hidden_layer_input2)
+        
+        self.output_layer_input = np.dot(self.hidden_layer_output2, self.weights_hidden_output) + self.bias_output
+        self.output = tanh(self.output_layer_input)
+        
+        return self.output
+
+    # Backward pass (gradient descent)
+    def backward(self, x, y, learning_rate):
+        # Output layer error
+        output_error = y - self.output
+        output_delta = output_error * ddxtanhx(self.output)
+        
+        # Hidden layer 2 error
+        hidden_error2 = output_delta.dot(self.weights_hidden_output.T)
+        hidden_delta2 = hidden_error2 * ddxtanhx(self.hidden_layer_output2)
+        
+        # Hidden layer 1 error
+        hidden_error1 = hidden_delta2.dot(self.weights_hidden_hidden.T)
+        hidden_delta1 = hidden_error1 * ddxtanhx(self.hidden_layer_output1)
+
+        # Weight and bias updates
+        self.weights_hidden_output += self.hidden_layer_output2.T.dot(output_delta) * learning_rate
+        self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
+        
+        self.weights_hidden_hidden += self.hidden_layer_output1.T.dot(hidden_delta2) * learning_rate
+        self.bias_hidden2 += np.sum(hidden_delta2, axis=0, keepdims=True) * learning_rate
+        
+        self.weights_hidden_input += x.T.dot(hidden_delta1) * learning_rate
+        self.bias_hidden1 += np.sum(hidden_delta1, axis=0, keepdims=True) * learning_rate
+
+    # Training loop
+    def train(self, x, y, epochs, learning_rate):
+        for epoch in range(epochs):
+            self.forward(x)
+            self.backward(x, y, learning_rate)
+            loss = np.mean(np.square(y - self.output))
+            print(f'Epoch {epoch}, Loss: {loss}')
+            
+            # Save plot at regular intervals
+            if epoch % 10 == 0:
+                plot.scatter(x[:, 0], y, label='True', color='blue')
+                plot.scatter(x[:, 0], self.output, label=f'Prediction at epoch {epoch}', color='red')
+                plot.legend(loc='lower left')
+                filename = f'{output_dir}/epoch_{epoch}.png'
+                filenames.append(filename)
+                plot.savefig(filename)
+                plot.close()
+
+# Step 6: I/O Normalization
 def normalize(data, actual_min, actual_max):
     virtual_min = actual_min - 0.05 * (actual_max - actual_min)
     virtual_max = actual_max + 0.05 * (actual_max - actual_min)
@@ -16,119 +89,41 @@ def denormalize(data, actual_min, actual_max):
     virtual_max = actual_max + 0.05 * (actual_max - actual_min)
     return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
 
-# fetch dataset 
-combined_cycle_power_plant = fetch_ucirepo(id=294) 
+# Generate random dataset with 5 features and one output
+np.random.seed(42)
+x = np.random.randn(1000, 5)  # 1000 samples, 5 features
+y = np.sum(x, axis=1).reshape(-1, 1) + np.random.randn(1000, 1) * 0.1  # Target is a noisy sum of inputs
 
-# data (as pandas dataframes) 
-x = combined_cycle_power_plant.data.features 
-y = combined_cycle_power_plant.data.targets 
-
+# Normalizing the data
 x_min, x_max = np.min(x), np.max(x)
 y_min, y_max = np.min(y), np.max(y)
 
 x_normalized = normalize(x, x_min, x_max)
 y_normalized = normalize(y, y_min, y_max)
 
-#Dividing Data into Test, Validation and Training sets
-test_x=x.iloc[8612:]
-test_y=y.iloc[8612:]
-train_x=[]
-train_y=[]
-val_x=[]
-val_y=[]
-for i in range(0,8612):
-    if(i%5==0):
-        val_x=x[i]
-        val_y=y[i]
-    else:
-        train_x=x[i]
-        train_y=y[i]
-
-
-#defining the activation functions and it's derivative
+# Define activation functions and derivatives
 def tanh(x):
     return np.tanh(x)
 
 def ddxtanhx(x):
-    return (1/np.cosh(x)**2)
+    return 1 - np.tanh(x) ** 2
 
-def logistic(x):
-    return 1 / (1 + np.exp(-x))
+# Create and train neural network with 2 hidden layers
+nn = NeuralNetwork(input_size=5, hidden_size1=4, hidden_size2=3, output_size=1)
+nn.train(x_normalized, y_normalized, epochs=100, learning_rate=0.01)
 
-def ddxlogisticx(x):
-    return x * (1 - x)
-
-def relu(x):
-    return np.maximum(0, x)
-
-def ddxrelux(x):
-    return np.where(x > 0, 1, 0)
-
-class NeuralNetwork:
-    #initialize weights
-    def __init__(self, input_size, hidden_size, output_size):
-        self.weights_hidden_input=np.random.randn(input_size, hidden_size)
-        self.weights_hidden_output=np.random.randn(hidden_size, output_size)
-        self.bias_hidden=np.random.randn(1, hidden_size)
-        self.bias_output=np.random.randn(1, output_size)
-
-
-    def forward(self, x):
-        self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
-        self.hidden_layer_output=tanh(self.hidden_layer_input)
-        self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
-        self.output=tanh(self.output_layer_input)      
-        return self.output
-
-    def backward(self,x,y,learning_rate):
-        #error calculation
-        output_error = y - self.output
-        output_delta = output_error * ddxtanhx(self.output)
-        hidden_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_delta = hidden_error * ddxtanhx(self.hidden_layer_output)
-
-        #weight and bias update
-        self.weights_hidden_output += self.hidden_layer_output.T.dot(output_delta) * learning_rate
-        self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
-        
-        self.weights_hidden_input += x.T.dot(hidden_delta) * learning_rate
-        self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
-
-    def train(self, x, y, epochs, learning_rate):
-        for epoch in range(epochs):
-            
-            self.forward(x)
-            self.backward(x, y, learning_rate)
-            loss = np.mean(np.square(y - self.output))
-            print(f'Loss: {loss}')
-            if(epoch%10==0):
-                plot.plot(x,y, label='CCPP')
-                plot.plot(x,self.output, label='approximation at epoch {epoch}')
-                filename = f'training_plots/epoch_{epoch}.png'
-                plot.legend(loc='lower left')
-                filenames.append(filename)
-                plot.savefig(filename)
-                plot.close()
-
-#creating nn
-
-nn = NeuralNetwork(input_size=4, hidden_size=4, output_size=1)
-nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001)
-
-
-
+# Predict using the trained model
 predicted_y_normalized = nn.forward(x_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
-# access metadata
-#print(CCPP.metadata.uci_id)
-#print("   ")
 
-#print(CCPP.metadata.num_instances)
-#print("   ")
+# Create a GIF from the saved images
+with imageio.get_writer('random_dataset_training_2_hidden_layers.gif', mode='I', duration=0.5) as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
 
-#print(CCPP.metadata.additional_info.summary)
-#print("   ")
+# Clean up images after creating the GIF
+for filename in filenames:
+    os.remove(filename)
 
-# access variable info in tabular format
-#print(CCPP.variables)
-#print("   ")
+print("Training GIF saved as 'random_dataset_training_2_hidden_layers.gif'.")
