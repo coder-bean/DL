@@ -142,7 +142,7 @@ class NeuralNetwork:
 batch_sizes = [1, 64, 256, len(train_x)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
-    nn = NeuralNetwork(input_size=4, hidden_size=6, output_size=1)
+    nn = NeuralNetwork(input_size=4, hidden_size=4, output_size=1)
     nn.train(x_normalized, y_normalized, epochs=1000, learning_rate=0.001, batch_size=batch_size)
 
 # Predict and denormalize the results
