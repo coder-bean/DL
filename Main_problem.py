@@ -69,36 +69,49 @@ def ddxrelux(x):
 
 # Neural Network class with updated forward and backward methods
 class NeuralNetwork:
-    #initialize weights
     def __init__(self, input_size, hidden_size, output_size):
-        self.weights_hidden_input=np.random.randn(input_size, hidden_size)
-        self.weights_hidden_output=np.random.randn(hidden_size, output_size)
-        self.bias_hidden=np.random.randn(1, hidden_size)
-        self.bias_output=np.random.randn(1, output_size)
-
+        self.weights_hidden_input = np.random.randn(input_size, hidden_size)
+        self.weights_hidden_1_2 = np.random.randn(hidden_size, hidden_size)
+        self.weights_hidden_output = np.random.randn(hidden_size, output_size)
+        self.bias_hidden_1 = np.random.randn(1, hidden_size)
+        self.bias_hidden_2 = np.random.randn(1, hidden_size)
+        self.bias_output = np.random.randn(1, output_size)
 
     def forward(self, x):
-        self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
-        self.hidden_layer_output=tanh(self.hidden_layer_input)
-        self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
-        self.output=tanh(self.output_layer_input)
+        # First hidden layer
+        self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
+        self.hidden_layer_1_output = tanh(self.hidden_layer_1_input)
+        
+        # Second hidden layer, updated with the correct input from the first hidden layer
+        self.hidden_layer_2_input = np.dot(self.hidden_layer_1_output, self.weights_hidden_1_2) + self.bias_hidden_2
+        self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
+        
+        # Output layer
+        self.output_layer_input = np.dot(self.hidden_layer_2_output, self.weights_hidden_output) + self.bias_output
+        self.output = logistic(self.output_layer_input)
+        
         return self.output
 
-
-
-    def backward(self,x,y,learning_rate):
-        #error calculation
+    def backward(self, x, y, learning_rate):
+        # Error and delta calculations
         output_error = y - self.output
-        output_delta = output_error * ddxtanhx(self.output)
-        hidden_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_delta = hidden_error * ddxtanhx(self.hidden_layer_output)
+        output_delta = output_error * ddxlogisticx(self.output)
 
-        #weight and bias update
-        self.weights_hidden_output += self.hidden_layer_output.T.dot(output_delta) * learning_rate
+        hidden_2_error = output_delta.dot(self.weights_hidden_output.T)
+        hidden_2_delta = hidden_2_error * ddxtanhx(self.hidden_layer_2_output)
+
+        hidden_1_error = hidden_2_delta.dot(self.weights_hidden_1_2.T)
+        hidden_1_delta = hidden_1_error * ddxtanhx(self.hidden_layer_1_output)
+
+        # Weight and bias updates
+        self.weights_hidden_output += self.hidden_layer_2_output.T.dot(output_delta) * learning_rate
         self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
 
-        self.weights_hidden_input += x.T.dot(hidden_delta) * learning_rate
-        self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
+        self.weights_hidden_1_2 += self.hidden_layer_1_output.T.dot(hidden_2_delta) * learning_rate
+        self.bias_hidden_2 += np.sum(hidden_2_delta, axis=0, keepdims=True) * learning_rate
+
+        self.weights_hidden_input += x.T.dot(hidden_1_delta) * learning_rate
+        self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
 
     def train(self, x, y, epochs, learning_rate, batch_size):
         # Ensure that x and y are NumPy arrays
