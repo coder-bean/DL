@@ -5,7 +5,7 @@ import matplotlib.pyplot as plot
 import math
 import os
 import imageio
-
+filenames = []
 def normalize(data, actual_min, actual_max):
     virtual_min = actual_min - 0.05 * (actual_max - actual_min)
     virtual_max = actual_max + 0.05 * (actual_max - actual_min)
@@ -129,10 +129,10 @@ class NeuralNetwork:
             if epoch % 10 == 0:
                 plot.plot(x, y, label='CCPP')
                 plot.plot(x, self.output, label=f'Approximation at epoch {epoch}')
-                if not os.path.exists('tplots'):
-                    os.makedirs('tplots')
+                if not os.path.exists('plots'):
+                    os.makedirs('plots')
 
-                filename = f'tplots/epoch_{epoch}.png'
+                filename = f'plots/epoch_{epoch}.png'
                 plot.legend(loc='lower left')
                 filenames.append(filename)
                 plot.savefig(filename)
