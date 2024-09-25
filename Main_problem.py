@@ -1,36 +1,53 @@
-from ucimlrepo import fetch_ucirepo 
+from ucimlrepo import fetch_ucirepo
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import math
 import os
 import imageio
+filenames = []
 
-def normalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
+# Normalize and Denormalize functions
+def normalization(arr):
 
-def denormalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
+    xmin= np.min(arr)
+    xmax= np.max(arr)
 
-combined_cycle_power_plant = fetch_ucirepo(id=294) 
+    xmin_= xmin- (xmax-xmin)*0.05
+    xmax_= xmax+ (xmax-xmin)*0.05
+    
+    X= (2*arr-(xmax_+xmin_))/(xmax_-xmin_)
+    
+    return X
 
+def denormalization(X, arr):
+    xmin = np.min(arr)
+    xmax = np.max(arr)
+
+    xmin_ = xmin - (xmax - xmin) * 0.05
+    xmax_ = xmax + (xmax - xmin) * 0.05
+
+    arr_original = ((X * (xmax_ - xmin_)) + (xmax_ + xmin_)) / 2
+
+    return arr_original
+
+
+# Fetch dataset
+combined_cycle_power_plant = fetch_ucirepo(id=294)
 
 # Convert pandas DataFrame to NumPy array
 x = combined_cycle_power_plant.data.features.to_numpy()
 y = combined_cycle_power_plant.data.targets.to_numpy()
 
+# Calculate min and max for normalization
 x_min, x_max = np.min(x), np.max(x)
 y_min, y_max = np.min(y), np.max(y)
 
 # Normalize data
-x_normalized = normalize(x, x_min, x_max)
-y_normalized = normalize(y, y_min, y_max)
+x_normalized = normalization(x)
+y_normalized = normalization(y)
 
-# Dividing data into training, validation, and test sets
+# Split data into training, validation, and test sets
 test_x = x_normalized[8612:]
 test_y = y_normalized[8612:]
 train_x, train_y, val_x, val_y = [], [], [], []
@@ -48,12 +65,12 @@ train_y = np.array(train_y)
 val_x = np.array(val_x)
 val_y = np.array(val_y)
 
-#defining the activation functions and it's derivative
+# Activation functions and their derivatives
 def tanh(x):
     return np.tanh(x)
 
 def ddxtanhx(x):
-    return (1/np.cosh(x)**2)
+    return 1 - np.tanh(x)**2
 
 def logistic(x):
     return 1 / (1 + np.exp(-x))
@@ -61,41 +78,39 @@ def logistic(x):
 def ddxlogisticx(x):
     return x * (1 - x)
 
-def relu(x):
-    return np.maximum(0, x)
+# He initialization for weights
+def he_initialization(shape):
+    return np.random.randn(*shape) * np.sqrt(2 / shape[0])
 
-def ddxrelux(x):
-    return np.where(x > 0, 1, 0)
-
-# Neural Network class with updated forward and backward methods
+# Neural Network class
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size, output_size):
-        self.weights_hidden_input = np.random.randn(input_size, hidden_size)
-        self.weights_hidden_1_2 = np.random.randn(hidden_size, hidden_size)
-        self.weights_hidden_output = np.random.randn(hidden_size, output_size)
-        self.bias_hidden_1 = np.random.randn(1, hidden_size)
-        self.bias_hidden_2 = np.random.randn(1, hidden_size)
-        self.bias_output = np.random.randn(1, output_size)
+        self.weights_hidden_input = he_initialization((input_size, hidden_size))
+        self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
+        self.weights_hidden_output = he_initialization((hidden_size, output_size))
+        self.bias_hidden_1 = np.zeros((1, hidden_size))
+        self.bias_hidden_2 = np.zeros((1, hidden_size))
+        self.bias_output = np.zeros((1, output_size))
 
     def forward(self, x):
         # First hidden layer
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
         self.hidden_layer_1_output = tanh(self.hidden_layer_1_input)
         
-        # Second hidden layer, updated with the correct input from the first hidden layer
+        # Second hidden layer
         self.hidden_layer_2_input = np.dot(self.hidden_layer_1_output, self.weights_hidden_1_2) + self.bias_hidden_2
         self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
         
         # Output layer
         self.output_layer_input = np.dot(self.hidden_layer_2_output, self.weights_hidden_output) + self.bias_output
-        self.output = tanh(self.output_layer_input)
+        self.output = logistic(self.output_layer_input)
         
         return self.output
 
     def backward(self, x, y, learning_rate):
         # Error and delta calculations
         output_error = y - self.output
-        output_delta = output_error * ddxtanhx(self.output)
+        output_delta = output_error * ddxlogisticx(self.output)
 
         hidden_2_error = output_delta.dot(self.weights_hidden_output.T)
         hidden_2_delta = hidden_2_error * ddxtanhx(self.hidden_layer_2_output)
@@ -113,28 +128,61 @@ class NeuralNetwork:
         self.weights_hidden_input += x.T.dot(hidden_1_delta) * learning_rate
         self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
 
-    def train(self, x, y, epochs, learning_rate):
-        filenames = []
+    def train(self, x, y, epochs, learning_rate, batch_size):
+        x = np.array(x)
+        y = np.array(y)
+        data_size = len(x)
+
         for epoch in range(epochs):
+            # Shuffle the data at the start of each epoch
+            shuffled_indices = np.random.permutation(data_size)
+            x_shuffled = x[shuffled_indices]
+            y_shuffled = y[shuffled_indices]
+
+            # Mini-batch gradient descent
+            for i in range(0, data_size, batch_size):
+                end = i + batch_size if i + batch_size <= data_size else data_size
+                batch_x = x_shuffled[i:end]
+                batch_y = y_shuffled[i:end]
+
+                self.forward(batch_x)
+                self.backward(batch_x, batch_y, learning_rate)
+
+            # Calculate and print loss for the epoch
             self.forward(x)
-            self.backward(x, y, learning_rate)
-            
             loss = np.mean(np.square(y - self.output))
-            print(f'Epoch {epoch}: Loss = {loss}')
-            
-            if epoch % 10 == 0:
-                plot.plot(x, y, label='Actual')
-                plot.plot(x, self.output, label=f'Prediction at epoch {epoch}')
+            print(f'Loss at epoch {epoch}: {loss}')
+
+            if epoch % 100 == 0:
+                plot.scatter(range(len(x)), y, label='True Data', color='blue', alpha=0.6)
+                plot.plot(range(len(x)), self.output, label=f'Approximation at epoch {epoch}', color='red')
+                if not os.path.exists('plots'):
+                    os.makedirs('plots')
+
+                filename = f'plots/epoch_{epoch}.png'
                 plot.legend(loc='lower left')
-                filename = f'training_plots/epoch_{epoch}.png'
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
 
-# Create the neural network and train it
-nn = NeuralNetwork(input_size=4, hidden_size=4, output_size=1)
-nn.train(train_x, train_y, epochs=1000, learning_rate=0.001)
+
+# Training with different batch sizes
+batch_sizes = [1, 64, 256, len(train_x)]
+for batch_size in batch_sizes:
+    print(f"\nTraining with batch size: {batch_size}")
+    nn = NeuralNetwork(input_size=4, hidden_size=4, output_size=1)
+    nn.train(train_x, train_y, epochs=1000, learning_rate=0.001, batch_size=batch_size)
 
 # Predict and denormalize the results
 predicted_y_normalized = nn.forward(test_x)
-predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
+predicted_y = denormalization(predicted_y_normalized, y_min, y_max)
+
+# Create a GIF from saved plots
+with imageio.get_writer('ccpp.gif', mode='I', duration=0.5) as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
+
+# Clean up images after creating the GIF
+for filename in filenames:
+    os.remove(filename)
