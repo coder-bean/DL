@@ -1,3 +1,4 @@
+   
 from ucimlrepo import fetch_ucirepo
 import numpy as np
 import pandas as pd
@@ -5,18 +6,18 @@ import matplotlib.pyplot as plot
 import math
 import os
 import imageio
+
 filenames = []
 
 # Normalize and Denormalize functions
 def normalization(arr):
+    xmin = np.min(arr)
+    xmax = np.max(arr)
 
-    xmin= np.min(arr)
-    xmax= np.max(arr)
-
-    xmin_= xmin- (xmax-xmin)*0.05
-    xmax_= xmax+ (xmax-xmin)*0.05
+    xmin_ = xmin - (xmax - xmin) * 0.05
+    xmax_ = xmax + (xmax - xmin) * 0.05
     
-    X= (2*arr-(xmax_+xmin_))/(xmax_-xmin_)
+    X = (2 * arr - (xmax_ + xmin_)) / (xmax_ - xmin_)
     
     return X
 
@@ -31,17 +32,12 @@ def denormalization(X, arr):
 
     return arr_original
 
-
 # Fetch dataset
 combined_cycle_power_plant = fetch_ucirepo(id=294)
 
 # Convert pandas DataFrame to NumPy array
 x = combined_cycle_power_plant.data.features.to_numpy()
 y = combined_cycle_power_plant.data.targets.to_numpy()
-
-# Calculate min and max for normalization
-x_min, x_max = np.min(x), np.max(x)
-y_min, y_max = np.min(y), np.max(y)
 
 # Normalize data
 x_normalized = normalization(x)
@@ -70,7 +66,7 @@ def tanh(x):
     return np.tanh(x)
 
 def ddxtanhx(x):
-    return 1 - np.tanh(x)**2
+    return 1 - np.tanh(x) ** 2
 
 def logistic(x):
     return 1 / (1 + np.exp(-x))
@@ -148,14 +144,14 @@ class NeuralNetwork:
                 self.forward(batch_x)
                 self.backward(batch_x, batch_y, learning_rate)
 
-            # Calculate and print loss for the epoch
-            self.forward(x)
-            loss = np.mean(np.square(y - self.output))
+            # After each epoch, plot the full dataset predictions
+            full_output = self.forward(x)
+            loss = np.mean(np.square(y - full_output))
             print(f'Loss at epoch {epoch}: {loss}')
 
             if epoch % 100 == 0:
                 plot.scatter(range(len(x)), y, label='True Data', color='blue', alpha=0.6)
-                plot.plot(range(len(x)), self.output, label=f'Approximation at epoch {epoch}', color='red')
+                plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
                     os.makedirs('plots')
 
@@ -164,7 +160,6 @@ class NeuralNetwork:
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
-
 
 # Training with different batch sizes
 batch_sizes = [1, 64, 256, len(train_x)]
@@ -175,7 +170,7 @@ for batch_size in batch_sizes:
 
 # Predict and denormalize the results
 predicted_y_normalized = nn.forward(test_x)
-predicted_y = denormalization(predicted_y_normalized, y_min, y_max)
+predicted_y = denormalization(predicted_y_normalized, test_y)
 
 # Create a GIF from saved plots
 with imageio.get_writer('ccpp.gif', mode='I', duration=0.5) as writer:
