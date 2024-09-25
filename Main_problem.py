@@ -1,4 +1,3 @@
-   
 from ucimlrepo import fetch_ucirepo
 import numpy as np
 import pandas as pd
@@ -166,7 +165,7 @@ batch_sizes = [1, 64, 256, len(train_x)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
     nn = NeuralNetwork(input_size=4, hidden_size=4, output_size=1)
-    nn.train(train_x, train_y, epochs=1000, learning_rate=0.001, batch_size=batch_size)
+    nn.train(train_x, train_y, epochs=1001, learning_rate=0.001, batch_size=batch_size)
 
 # Predict and denormalize the results
 predicted_y_normalized = nn.forward(test_x)
