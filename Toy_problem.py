@@ -87,6 +87,16 @@ class NeuralNetwork:
 
             if epoch % 10 == 0:
                 print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MAPE): {val_loss}')
+                plot.scatter(range(len(x)), y, label='True Data', alpha=0.6)
+                plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
+                if not os.path.exists('plots'):
+                    os.makedirs('plots')
+
+                filename = f'plots/epoch_{epoch}.png'
+                plot.legend(loc='lower left')
+                filenames.append(filename)
+                plot.savefig(filename)
+                plot.close()
         return training_losses, validation_losses
 # Define activation functions and their derivatives
 def tanh(x):
@@ -124,7 +134,7 @@ x_val_normalized = normalize(x_val, x_min, x_max)
 y_val_normalized = normalize(y_val, y_min, y_max)
 
 # Initialize the neural network and train
-nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
+nn = NeuralNetwork(input_size=1, hidden_size=2, output_size=1)
 training_losses, validation_losses = nn.train(x_train, y_train, x_val, y_val, epochs=1000, learning_rate=0.001, batch_size=32)
 
 # Plot training vs validation loss
@@ -137,3 +147,10 @@ plot.ylabel('Loss')
 plot.legend()
 plot.grid()
 plot.show()
+
+with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
+for filename in filenames:
+    os.remove(filename)
