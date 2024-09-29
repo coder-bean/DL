@@ -10,6 +10,7 @@ output_dir = 'training_plots'
 filenames = []
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
 # He Initialization
 def he_initialization(shape):
     return np.random.randn(*shape) * np.sqrt(2 / shape[0])
@@ -77,18 +78,18 @@ class NeuralNetwork:
 
             # Calculate training loss (using MSE)
             full_output = self.forward(x)
-            train_loss = np.mean(np.abs((full_output-y) / (full_output+0.01)))
+            train_loss = np.mean(np.square(full_output - y))
             training_losses.append(train_loss)
 
-            # Calculate validation loss (using MAPE)
+            # Calculate validation loss (using MSE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.abs((val_output-y_val) / (val_output+0.01))) * 100  # Add a small constant to avoid division by zero
+            val_loss = np.mean(np.square(val_output - y_val))
             validation_losses.append(val_loss)
 
             if epoch % 10 == 0:
-                print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MAPE): {val_loss}')
-                plot.scatter(range(len(x)), y, label='True Data', alpha=0.6)
-                plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
+                print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss: {val_loss}')
+                plot.scatter(x_train, y_train, label='True Data', alpha=0.6)
+                plot.plot(x_train, full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
                     os.makedirs('plots')
 
@@ -98,6 +99,7 @@ class NeuralNetwork:
                 plot.savefig(filename)
                 plot.close()
         return training_losses, validation_losses
+
 # Define activation functions and their derivatives
 def tanh(x):
     return np.tanh(x)
@@ -107,8 +109,6 @@ def ddxtanhx(x):
 
 # Normalize function
 def normalize(data, minim, maxim):
-    minim = np.min(data)
-    maxim = np.max(data)
     return (2 * data - (maxim + minim)) / (maxim - minim)
 
 def denormalize(normalized, minim, maxim):
@@ -118,24 +118,22 @@ def denormalize(normalized, minim, maxim):
 x_train = np.linspace(-2 * np.pi, 2 * np.pi, 1000).reshape(-1, 1)
 y_train = np.sin(x_train)
 
-x_val=x = np.linspace(-2 * np.pi, 2 * np.pi, 300).reshape(-1, 1)
-y_val=np.sin(x_val)
+x_val = np.linspace(-2 * np.pi, 2 * np.pi, 300).reshape(-1, 1)
+y_val = np.sin(x_val)
 
+# Normalize the data based on the training set
 x_min, x_max = np.min(x_train), np.max(x_train)
 y_min, y_max = np.min(y_train), np.max(y_train)
 
-x_normalized = normalize(x, x_min, x_max)
+x_normalized = normalize(x_train, x_min, x_max)
 y_normalized = normalize(y_train, y_min, y_max)
-
-x_min, x_max = np.min(x_val), np.max(x_val)
-y_min, y_max = np.min(y_val), np.max(y_val)
 
 x_val_normalized = normalize(x_val, x_min, x_max)
 y_val_normalized = normalize(y_val, y_min, y_max)
 
 # Initialize the neural network and train
-nn = NeuralNetwork(input_size=1, hidden_size=2, output_size=1)
-training_losses, validation_losses = nn.train(x_train, y_train, x_val, y_val, epochs=1000, learning_rate=0.001, batch_size=32)
+nn = NeuralNetwork(input_size=1, hidden_size=8, output_size=1)
+training_losses, validation_losses = nn.train(x_normalized, y_normalized, x_val_normalized, y_val_normalized, epochs=1000, learning_rate=0.0001, batch_size=32)
 
 # Plot training vs validation loss
 plot.figure(figsize=(10, 6))
@@ -148,9 +146,15 @@ plot.legend()
 plot.grid()
 plot.show()
 
+# Create a GIF of the training process
 with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
     for filename in filenames:
         image = imageio.imread(filename)
         writer.append_data(image)
+
+print('fin')
+
+# Remove plot images
 for filename in filenames:
     os.remove(filename)
+                      
