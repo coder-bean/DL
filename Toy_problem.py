@@ -77,15 +77,15 @@ class NeuralNetwork:
 
             # Calculate training loss (using MSE)
             full_output = self.forward(x)
-            train_loss = np.mean(np.square(y - full_output))
+            train_loss = np.mean(np.abs((full_output-y) / (full_output+0.01)))
             training_losses.append(train_loss)
 
             # Calculate validation loss (using MAPE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.abs((y_val - val_output) / (y_val + 1e-3))) * 100  # Add a small constant to avoid division by zero
+            val_loss = np.mean(np.abs((val_output-y_val) / (val_output+0.01))) * 100  # Add a small constant to avoid division by zero
             validation_losses.append(val_loss)
 
-            if epoch % 100 == 0:
+            if epoch % 10 == 0:
                 print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MAPE): {val_loss}')
         return training_losses, validation_losses
 # Define activation functions and their derivatives
@@ -127,7 +127,7 @@ training_losses, validation_losses = nn.train(x_train, y_train, x_val, y_val, ep
 plot.figure(figsize=(10, 6))
 plot.plot(training_losses, label='Training Loss', color='blue')
 plot.plot(validation_losses, label='Validation Loss', color='orange')
-plot.title('Training vs Validation Loss without L2 Regularization')
+plot.title('Training vs Validation Loss')
 plot.xlabel('Epochs')
 plot.ylabel('Loss')
 plot.legend()
