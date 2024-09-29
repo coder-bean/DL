@@ -105,19 +105,23 @@ def denormalize(normalized, minim, maxim):
     return (normalized * (maxim - minim) + (maxim + minim)) / 2
 
 # Prepare the sine wave data
-x = np.linspace(-2 * np.pi, 2 * np.pi, 1000).reshape(-1, 1)
-y = np.sin(x)
+x_train = np.linspace(-2 * np.pi, 2 * np.pi, 1000).reshape(-1, 1)
+y_train = np.sin(x_train)
 
-x_min, x_max = np.min(x), np.max(x)
-y_min, y_max = np.min(y), np.max(y)
+x_val=x = np.linspace(-2 * np.pi, 2 * np.pi, 300).reshape(-1, 1)
+y_val=np.sin(x_val)
+
+x_min, x_max = np.min(x_train), np.max(x_train)
+y_min, y_max = np.min(y_train), np.max(y_train)
 
 x_normalized = normalize(x, x_min, x_max)
-y_normalized = normalize(y, y_min, y_max)
+y_normalized = normalize(y_train, y_min, y_max)
 
-# Split the data for validation
-split_index = int(len(x_normalized) * 0.8)  # 80% for training, 20% for validation
-x_train, x_val = x_normalized[:split_index], x_normalized[split_index:]
-y_train, y_val = y_normalized[:split_index], y_normalized[split_index:]
+x_min, x_max = np.min(x_val), np.max(x_val)
+y_min, y_max = np.min(y_val), np.max(y_val)
+
+x_val_normalized = normalize(x_val, x_min, x_max)
+y_val_normalized = normalize(y_val, y_min, y_max)
 
 # Initialize the neural network and train
 nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
