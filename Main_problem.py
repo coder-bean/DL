@@ -34,6 +34,7 @@ def denormalization(X, arr):
 # Fetch dataset
 combined_cycle_power_plant = fetch_ucirepo(id=294)
 
+
 # Convert pandas DataFrame to NumPy array
 x = combined_cycle_power_plant.data.features.to_numpy()
 y = combined_cycle_power_plant.data.targets.to_numpy()
@@ -43,6 +44,7 @@ x_normalized = normalization(x)
 y_normalized = normalization(y)
 
 # Split data into training, validation, and test sets
+
 test_x = x_normalized[8612:]
 test_y = y_normalized[8612:]
 train_x, train_y, val_x, val_y = [], [], [], []
@@ -87,12 +89,14 @@ class NeuralNetwork:
         self.bias_hidden_2 = np.zeros((1, hidden_size))
         self.bias_output = np.zeros((1, output_size))
 
+
     def forward(self, x):
         # First hidden layer
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
         self.hidden_layer_1_output = tanh(self.hidden_layer_1_input)
         
         # Second hidden layer
+
         self.hidden_layer_2_input = np.dot(self.hidden_layer_1_output, self.weights_hidden_1_2) + self.bias_hidden_2
         self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
         
@@ -130,11 +134,13 @@ class NeuralNetwork:
 
         for epoch in range(epochs):
             # Shuffle the data at the start of each epoch
+
             shuffled_indices = np.random.permutation(data_size)
             x_shuffled = x[shuffled_indices]
             y_shuffled = y[shuffled_indices]
 
             # Mini-batch gradient descent
+
             for i in range(0, data_size, batch_size):
                 end = i + batch_size if i + batch_size <= data_size else data_size
                 batch_x = x_shuffled[i:end]
@@ -151,6 +157,7 @@ class NeuralNetwork:
             if epoch % 100 == 0:
                 plot.scatter(range(len(x)), y, label='True Data', color='blue', alpha=0.6)
                 plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
+
                 if not os.path.exists('plots'):
                     os.makedirs('plots')
 
@@ -161,6 +168,7 @@ class NeuralNetwork:
                 plot.close()
 
 # Training with different batch sizes
+
 batch_sizes = [1, 64, 256, len(train_x)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
@@ -171,7 +179,7 @@ for batch_size in batch_sizes:
 predicted_y_normalized = nn.forward(test_x)
 predicted_y = denormalization(predicted_y_normalized, test_y)
 
-# Create a GIF from saved plots
+
 with imageio.get_writer('ccpp.gif', mode='I', duration=0.5) as writer:
     for filename in filenames:
         image = imageio.imread(filename)
