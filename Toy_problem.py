@@ -61,10 +61,12 @@ class NeuralNetwork:
         self.weights_hidden_input += x.T.dot(hidden_1_delta) * learning_rate
         self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
 
-    def train(self, x, y, epochs, learning_rate, batch_size):
+    def train(self, x, y, x_val, y_val, epochs, learning_rate, batch_size):
         x = np.array(x)
         y = np.array(y)
         data_size = len(x)
+        training_losses = []
+        validation_losses = []
 
         for epoch in range(epochs):
             # Shuffle the data at the start of each epoch
@@ -80,13 +82,22 @@ class NeuralNetwork:
 
                 self.forward(batch_x)
                 self.backward(batch_x, batch_y, learning_rate)
+            full_output = self.forward(x)
+            train_loss = np.mean(np.square(y - full_output))
+            training_losses.append(train_loss)
+
+            # Calculate validation loss (using MAPE)
+            val_output = self.forward(x_val)
+            val_loss = np.mean(np.abs((y_val - val_output) / (y_val + 1e-3))) * 100  # Add a small constant to avoid division by zero
+            validation_losses.append(val_loss)
 
             # After each epoch, plot the full dataset predictions
             full_output = self.forward(x)
             loss = np.mean(np.square(y - full_output))
             print(f'Loss at epoch {epoch}: {loss}')
 
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
+                print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MAPE): {val_loss}')
                 plot.scatter(range(len(x)), y, label='True Data')
                 plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
@@ -97,20 +108,18 @@ class NeuralNetwork:
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
-
-# Training with different batch sizes
+        return training_losses, validation_losses
 
 
 #step 6: I/O Normalization
-def normalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
+def normalize(data, minim, maxim):
+    minim=np.min(data)
+    maxim=np.max(data)
+    return (2*data - (maxim+minim))/(maxim-minim)
 
-def denormalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
+def denormalize(normalized, minim, maxim):
+    return (normalized * (maxim - minim) + (maxim + minim)) / 2
+
 
 x=np.linspace(-2*np.pi, 2*np.pi,1000).reshape(-1,1)
 y=np.sin(x)
@@ -121,6 +130,11 @@ y_min, y_max = np.min(y), np.max(y)
 x_normalized = normalize(x, x_min, x_max)
 y_normalized = normalize(y, y_min, y_max)
 #part b1: splitting into 4 equal parts:
+# Split the data for validation
+split_index = int(len(x_normalized) * 0.8)  # 80% for training, 20% for validation
+x_train, x_val = x_normalized[:split_index], x_normalized[split_index:]
+y_train, y_val = y_normalized[:split_index], y_normalized[split_index:]
+
 split_x=np.split(x,4)
 split_y=np.split(y,4)
 
@@ -137,15 +151,28 @@ def ddxtanhx(x):
 
 
 #creating nn
-
+# Training with different batch sizes
 batch_sizes = [1, 64, 256, len(x_normalized)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
     nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
-    nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001, batch_size=batch_size)
+    nn.train(x_normalized,y_normalized,x_val, y_val, epochs=1000, learning_rate=0.001, batch_size=batch_size)
 
 predicted_y_normalized = nn.forward(x_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
+
+training_losses, validation_losses = nn.train(x_train, y_train, x_val, y_val, epochs=1000, learning_rate=0.001, batch_size=32)
+
+# Plot training vs validation loss
+plot.figure(figsize=(10, 6))
+plot.plot(training_losses, label='Training Loss', color='blue')
+plot.plot(validation_losses, label='Validation Loss', color='orange')
+plot.title('Training vs Validation Loss without L2 Regularization')
+plot.xlabel('Epochs')
+plot.ylabel('Loss')
+plot.legend()
+plot.grid()
+plot.show()
 
 # Create a GIF from the saved images
 with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
