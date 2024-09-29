@@ -86,7 +86,7 @@ class NeuralNetwork:
             loss = np.mean(np.square(y - full_output))
             print(f'Loss at epoch {epoch}: {loss}')
 
-            if epoch % 100 == 0:
+            if epoch % 10 == 0:
                 plot.scatter(range(len(x)), y, label='True Data', alpha=0.6)
                 plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
