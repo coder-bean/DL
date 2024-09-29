@@ -10,66 +10,106 @@ filenames=[]
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-    
-#steps 2 and 3: ANN Architecture, Backpropogation equations
-class NeuralNetwork:
-    #initialize weights
-    def __init__(self, input_size, hidden_size, output_size):
-        self.weights_hidden_input=np.random.randn(input_size, hidden_size)
-        self.weights_hidden_output=np.random.randn(hidden_size, output_size)
-        self.bias_hidden=np.random.randn(1, hidden_size)
-        self.bias_output=np.random.randn(1, output_size)
 
+#steps 2 and 3: ANN Architecture, Backpropogation equations
+def he_initialization(shape):
+    return np.random.randn(*shape) * np.sqrt(2 / shape[0])
+
+# Neural Network class
+class NeuralNetwork:
+    def __init__(self, input_size, hidden_size, output_size):
+        self.weights_hidden_input = he_initialization((input_size, hidden_size))
+        self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
+        self.weights_hidden_output = he_initialization((hidden_size, output_size))
+        self.bias_hidden_1 = np.zeros((1, hidden_size))
+        self.bias_hidden_2 = np.zeros((1, hidden_size))
+        self.bias_output = np.zeros((1, output_size))
 
     def forward(self, x):
-        self.hidden_layer_input=np.dot(x, self.weights_hidden_input)+self.bias_hidden
-        self.hidden_layer_output=tanh(self.hidden_layer_input)
-        self.output_layer_input=np.dot(self.hidden_layer_output, self.weights_hidden_output)+self.bias_output
-        self.output=tanh(self.output_layer_input)      
+        # First hidden layer
+        self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
+        self.hidden_layer_1_output = tanh(self.hidden_layer_1_input)
+        
+        # Second hidden layer
+        self.hidden_layer_2_input = np.dot(self.hidden_layer_1_output, self.weights_hidden_1_2) + self.bias_hidden_2
+        self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
+        
+        # Output layer
+        self.output_layer_input = np.dot(self.hidden_layer_2_output, self.weights_hidden_output) + self.bias_output
+        self.output = tanh(self.output_layer_input)
+        
         return self.output
-    
-    
 
-    def backward(self,x,y,learning_rate):
-        #error calculation
+    def backward(self, x, y, learning_rate):
+        # Error and delta calculations
         output_error = y - self.output
         output_delta = output_error * ddxtanhx(self.output)
-        hidden_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_delta = hidden_error * ddxtanhx(self.hidden_layer_output)
 
-        #weight and bias update
-        self.weights_hidden_output += self.hidden_layer_output.T.dot(output_delta) * learning_rate
+        hidden_2_error = output_delta.dot(self.weights_hidden_output.T)
+        hidden_2_delta = hidden_2_error * ddxtanhx(self.hidden_layer_2_output)
+
+        hidden_1_error = hidden_2_delta.dot(self.weights_hidden_1_2.T)
+        hidden_1_delta = hidden_1_error * ddxtanhx(self.hidden_layer_1_output)
+
+        # Weight and bias updates
+        self.weights_hidden_output += self.hidden_layer_2_output.T.dot(output_delta) * learning_rate
         self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
-        
-        self.weights_hidden_input += x.T.dot(hidden_delta) * learning_rate
-        self.bias_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
 
-    def train(self, x, y, epochs, learning_rate):
+        self.weights_hidden_1_2 += self.hidden_layer_1_output.T.dot(hidden_2_delta) * learning_rate
+        self.bias_hidden_2 += np.sum(hidden_2_delta, axis=0, keepdims=True) * learning_rate
+
+        self.weights_hidden_input += x.T.dot(hidden_1_delta) * learning_rate
+        self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
+
+    def train(self, x, y, epochs, learning_rate, batch_size):
+        x = np.array(x)
+        y = np.array(y)
+        data_size = len(x)
+
         for epoch in range(epochs):
-            
-            self.forward(x)
-            self.backward(x, y, learning_rate)
-            loss = np.mean(np.square(y - self.output))
-            print(f'Loss: {loss}')
-            if(epoch%10==0):
-                plot.plot(x,y, label='True Sine wave')
-                plot.plot(x,self.output, label='approximation at epoch {epoch}')
-                filename = f'training_plots/epoch_{epoch}.png'
+            # Shuffle the data at the start of each epoch
+            shuffled_indices = np.random.permutation(data_size)
+            x_shuffled = x[shuffled_indices]
+            y_shuffled = y[shuffled_indices]
+
+            # Mini-batch gradient descent
+            for i in range(0, data_size, batch_size):
+                end = i + batch_size if i + batch_size <= data_size else data_size
+                batch_x = x_shuffled[i:end]
+                batch_y = y_shuffled[i:end]
+
+                self.forward(batch_x)
+                self.backward(batch_x, batch_y, learning_rate)
+
+            # After each epoch, plot the full dataset predictions
+            full_output = self.forward(x)
+            loss = np.mean(np.square(y - full_output))
+            print(f'Loss at epoch {epoch}: {loss}')
+
+            if epoch % 100 == 0:
+                plot.scatter(range(len(x)), y, label='True Data', alpha=0.6)
+                plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
+                if not os.path.exists('plots'):
+                    os.makedirs('plots')
+
+                filename = f'plots/epoch_{epoch}.png'
                 plot.legend(loc='lower left')
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
 
-#step 6: I/O Normalization
-def normalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
+# Training with different batch sizes
 
-def denormalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
+
+#step 6: I/O Normalization
+def normalize(data, minim, maxim):
+    minim=np.min(data)
+    maxim=np.max(data)
+    return (2*data - (maxim+minim))/(maxim-minim)
+
+def denormalize(normalized, minim, maxim):
+    return (normalized * (maxim - minim) + (maxim + minim)) / 2
+
 
 x=np.linspace(-2*np.pi, 2*np.pi,1000).reshape(-1,1)
 y=np.sin(x)
@@ -96,11 +136,15 @@ def ddxtanhx(x):
 
 
 #creating nn
-nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
-nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001)
+
+batch_sizes = [1, 64, 256, len(x_normalized)]
+for batch_size in batch_sizes:
+    print(f"\nTraining with batch size: {batch_size}")
+    nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
+    nn.train(x_normalized,y_normalized, epochs=1000, learning_rate=0.001, batch_size=batch_size)
+
 predicted_y_normalized = nn.forward(x_normalized)
 predicted_y = denormalize(predicted_y_normalized, y_min, y_max)
-
 
 # Create a GIF from the saved images
 with imageio.get_writer('sine_wave_training.gif', mode='I', duration=0.5) as writer:
