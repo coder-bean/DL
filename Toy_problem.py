@@ -99,15 +99,14 @@ class NeuralNetwork:
                 plot.close()
 
 #step 6: I/O Normalization
-def normalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return 1.8 * (data - virtual_min) / (virtual_max - virtual_min) - 0.9
+def normalize(data, minim, maxim):
+    minim=np.min(data)
+    maxim=np.max(data)
+    return (2*data - (maxim+minim))/(maxim-minim)
 
-def denormalize(data, actual_min, actual_max):
-    virtual_min = actual_min - 0.05 * (actual_max - actual_min)
-    virtual_max = actual_max + 0.05 * (actual_max - actual_min)
-    return (data + 0.9) * (virtual_max - virtual_min) / 1.8 + virtual_min
+def denormalize(normalized, minim, maxim):
+    return (normalized * (maxim - minim) + (maxim + minim)) / 2
+
 
 x=np.linspace(-2*np.pi, 2*np.pi,1000).reshape(-1,1)
 y=np.sin(x)
