@@ -98,9 +98,6 @@ class NeuralNetwork:
                 plot.savefig(filename)
                 plot.close()
 
-# Training with different batch sizes
-
-
 #step 6: I/O Normalization
 def normalize(data, actual_min, actual_max):
     virtual_min = actual_min - 0.05 * (actual_max - actual_min)
@@ -137,7 +134,7 @@ def ddxtanhx(x):
 
 
 #creating nn
-
+# Training with different batch sizes
 batch_sizes = [1, 64, 256, len(x_normalized)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
