@@ -87,7 +87,7 @@ class NeuralNetwork:
             print(f'Loss at epoch {epoch}: {loss}')
 
             if epoch % 10 == 0:
-                plot.scatter(range(len(x)), y, label='True Data', alpha=0.6)
+                plot.scatter(range(len(x)), y, label='True Data')
                 plot.plot(range(len(x)), full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
                     os.makedirs('plots')
@@ -97,9 +97,6 @@ class NeuralNetwork:
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
-
-# Training with different batch sizes
-
 
 #step 6: I/O Normalization
 def normalize(data, minim, maxim):
@@ -136,7 +133,7 @@ def ddxtanhx(x):
 
 
 #creating nn
-
+# Training with different batch sizes
 batch_sizes = [1, 64, 256, len(x_normalized)]
 for batch_size in batch_sizes:
     print(f"\nTraining with batch size: {batch_size}")
