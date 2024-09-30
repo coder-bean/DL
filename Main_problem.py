@@ -28,13 +28,14 @@ def he_initialization(shape):
 
 # Neural Network class
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, lambda_reg=0.001):
         self.weights_hidden_input = he_initialization((input_size, hidden_size))
         self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
         self.weights_hidden_output = he_initialization((hidden_size, output_size))
         self.bias_hidden_1 = np.zeros((1, hidden_size))
         self.bias_hidden_2 = np.zeros((1, hidden_size))
         self.bias_output = np.zeros((1, output_size))
+        self.lambda_reg = lambda_reg
 
     def forward(self, x):
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
@@ -48,7 +49,7 @@ class NeuralNetwork:
         
         return self.output
 
-    def backward(self, x, y, learning_rate):
+    def backward(self, x, y, learning_rate, lambda_reg=0.01):
         output_error = y - self.output
         output_delta = output_error * ddxtanhx(self.output)
 
@@ -58,14 +59,16 @@ class NeuralNetwork:
         hidden_1_error = hidden_2_delta.dot(self.weights_hidden_1_2.T)
         hidden_1_delta = hidden_1_error * ddxtanhx(self.hidden_layer_1_output)
 
-        self.weights_hidden_output += self.hidden_layer_2_output.T.dot(output_delta) * learning_rate
+        # Update weights with L2 regularization
+        self.weights_hidden_output += (self.hidden_layer_2_output.T.dot(output_delta) - lambda_reg * self.weights_hidden_output) * learning_rate
         self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
 
-        self.weights_hidden_1_2 += self.hidden_layer_1_output.T.dot(hidden_2_delta) * learning_rate
+        self.weights_hidden_1_2 += (self.hidden_layer_1_output.T.dot(hidden_2_delta) - lambda_reg * self.weights_hidden_1_2) * learning_rate
         self.bias_hidden_2 += np.sum(hidden_2_delta, axis=0, keepdims=True) * learning_rate
 
-        self.weights_hidden_input += x.T.dot(hidden_1_delta) * learning_rate
+        self.weights_hidden_input += (x.T.dot(hidden_1_delta) - lambda_reg * self.weights_hidden_input) * learning_rate
         self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
+
 
     def train(self, x, y, x_val, y_val, epochs, learning_rate, batch_size):
         x = np.array(x)
@@ -99,7 +102,7 @@ class NeuralNetwork:
             if epoch % 10 == 0:
                 print(f'Epoch {epoch}, Training MAPE: {train_loss}, Validation MAPE: {val_loss}')
                 plot.scatter(x[:, 0], y[:, 0], label='True Data', alpha=0.6)
-                plot.plot(x, full_output, label=f'Approximation at epoch {epoch}', color='red')
+                plot.scatter(x[:,0], full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
                     os.makedirs('plots')
 
