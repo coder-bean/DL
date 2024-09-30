@@ -92,14 +92,13 @@ class NeuralNetwork:
 
             val_loss = np.mean(np.square((y_val - val_output)))
 
-# Append MAE and RMSE to track them alongside MAPE
             validation_losses.append(val_loss)
 
             # After each epoch, plot the full dataset predictions
             full_output = self.forward(x)
             loss = np.mean(np.square(y - full_output))
             print(f'Loss at epoch {epoch}: {loss}')
-            print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MAPE): {val_loss}')
+            print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss (MSE): {val_loss}')
 
             if epoch % 10 == 0:
                 plot.scatter(range(len(x)), y, label='True Data')
