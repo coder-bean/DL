@@ -45,13 +45,13 @@ class NeuralNetwork:
         self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
         
         self.output_layer_input = np.dot(self.hidden_layer_2_output, self.weights_hidden_output) + self.bias_output
-        self.output = tanh(self.output_layer_input)
+        self.output = logistic(self.output_layer_input)
         
         return self.output
 
     def backward(self, x, y, learning_rate, lambda_reg=0.01):
         output_error = y - self.output
-        output_delta = output_error * ddxtanhx(self.output)
+        output_delta = output_error * ddxlogistic(self.output)
 
         hidden_2_error = output_delta.dot(self.weights_hidden_output.T)
         hidden_2_delta = hidden_2_error * ddxtanhx(self.hidden_layer_2_output)
@@ -120,6 +120,17 @@ def tanh(x):
 
 def ddxtanhx(x):
     return (1 / np.cosh(x) ** 2)
+def logistic(x):
+    return 1 / (1 + np.exp(-x))
+
+def ddxlogistic(x):
+    log = logistic(x)
+    return log * (1 - log)
+def relu(x):
+    return np.maximum(0, x)
+
+def ddxrelu(x):
+    return np.where(x > 0, 1, 0)
 
 # Normalize function
 def normalize(data):
@@ -177,7 +188,7 @@ val_y = np.array(val_y)
 
 # Initialize the neural network and train
 nn = NeuralNetwork(input_size=4, hidden_size=8, output_size=1)
-training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, epochs=1000, learning_rate=0.0001, batch_size=1)
+training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, epochs=1000, learning_rate=0.0001, batch_size=64)
 
 
 # Plot training vs validation loss
