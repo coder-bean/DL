@@ -15,7 +15,7 @@ if not os.path.exists(output_dir):
 def he_initialization(shape):
     return np.random.randn(*shape) * np.sqrt(2 / shape[0])
 
-# Neural Network class without L2 Regularization
+# Neural Network class
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size, output_size):
         self.weights_hidden_input = he_initialization((input_size, hidden_size))
@@ -76,18 +76,18 @@ class NeuralNetwork:
                 self.forward(batch_x)
                 self.backward(batch_x, batch_y, learning_rate)
 
-            # Calculate training loss (using MSE)
+            # Calculate training loss using MAPE
             full_output = self.forward(x)
-            train_loss = np.mean(np.square(full_output - y))
+            train_loss = np.mean(np.abs((y - full_output) / (y + 1e-2))) * 100
             training_losses.append(train_loss)
 
-            # Calculate validation loss (using MSE)
+            # Calculate validation loss (using MAPE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.square(val_output - y_val))
+            val_loss = np.mean(np.abs((y_val - val_output) / (y_val + 1e-2))) * 100  # Add a small constant to avoid division by zero
             validation_losses.append(val_loss)
 
             if epoch % 10 == 0:
-                print(f'Epoch {epoch}, Training Loss: {train_loss}, Validation Loss: {val_loss}')
+                print(f'Epoch {epoch}, Training MAPE: {train_loss}, Validation MAPE: {val_loss}')
                 plot.scatter(x_train, y_train, label='True Data', alpha=0.6)
                 plot.plot(x_train, full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
@@ -128,20 +128,25 @@ y_min, y_max = np.min(y_train), np.max(y_train)
 x_normalized = normalize(x_train, x_min, x_max)
 y_normalized = normalize(y_train, y_min, y_max)
 
+x_min, x_max = np.min(x_val), np.max(x_val)
+y_min, y_max = np.min(y_val), np.max(y_val)
+
 x_val_normalized = normalize(x_val, x_min, x_max)
 y_val_normalized = normalize(y_val, y_min, y_max)
 
+print(f'x_normalized: {x_normalized}, y_normalized: {y_normalized}, x_val_normalized: {x_val_normalized}, y_val_normalized: {y_val_normalized}')
 # Initialize the neural network and train
 nn = NeuralNetwork(input_size=1, hidden_size=8, output_size=1)
 training_losses, validation_losses = nn.train(x_normalized, y_normalized, x_val_normalized, y_val_normalized, epochs=1000, learning_rate=0.0001, batch_size=32)
 
+
 # Plot training vs validation loss
 plot.figure(figsize=(10, 6))
-plot.plot(training_losses, label='Training Loss', color='blue')
-plot.plot(validation_losses, label='Validation Loss', color='orange')
-plot.title('Training vs Validation Loss')
+plot.plot(training_losses, label='Training MAPE', color='blue')
+plot.plot(validation_losses, label='Validation MAPE', color='orange')
+plot.title('Training vs Validation MAPE')
 plot.xlabel('Epochs')
-plot.ylabel('Loss')
+plot.ylabel('MAPE (%)')
 plot.legend()
 plot.grid()
 plot.show()
@@ -157,4 +162,3 @@ print('fin')
 # Remove plot images
 for filename in filenames:
     os.remove(filename)
-                      
