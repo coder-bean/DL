@@ -28,14 +28,13 @@ def he_initialization(shape):
 
 # Neural Network class
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size, lambda_reg=0.001):
+    def __init__(self, input_size, hidden_size, output_size):
         self.weights_hidden_input = he_initialization((input_size, hidden_size))
         self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
         self.weights_hidden_output = he_initialization((hidden_size, output_size))
         self.bias_hidden_1 = np.zeros((1, hidden_size))
         self.bias_hidden_2 = np.zeros((1, hidden_size))
         self.bias_output = np.zeros((1, output_size))
-        self.lambda_reg = lambda_reg
 
     def forward(self, x):
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
