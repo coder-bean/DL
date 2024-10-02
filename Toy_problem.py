@@ -27,7 +27,7 @@ class NeuralNetwork:
 
     def forward(self, x):
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
-        self.hidden_layer_1_output = tanh(self.hidden_layer_1_input)
+        self.hidden_layer_1_output = (self.hidden_layer_1_input)
         
         self.hidden_layer_2_input = np.dot(self.hidden_layer_1_output, self.weights_hidden_1_2) + self.bias_hidden_2
         self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
@@ -78,12 +78,12 @@ class NeuralNetwork:
 
             # Calculate training loss using MAPE
             full_output = self.forward(x)
-            train_loss = np.mean(np.abs((y - full_output) / (y + 1e-2))) * 100
+            train_loss = np.mean(np.abs((y - full_output) / np.where(np.abs(y) > 0.1000000000,y, 1))) * 100
             training_losses.append(train_loss)
 
             # Calculate validation loss (using MAPE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.abs((y_val - val_output) / (y_val + 1e-2))) * 100  # Add a small constant to avoid division by zero
+            val_loss = np.mean(np.abs((y_val - val_output) / np.where(np.abs(y_val) > 0.1000000000, y_val, 1))) * 100
             validation_losses.append(val_loss)
 
             if epoch % 10 == 0:
@@ -134,9 +134,9 @@ y_min, y_max = np.min(y_val), np.max(y_val)
 x_val_normalized = normalize(x_val, x_min, x_max)
 y_val_normalized = normalize(y_val, y_min, y_max)
 
-print(f'x_normalized: {x_normalized}, y_normalized: {y_normalized}, x_val_normalized: {x_val_normalized}, y_val_normalized: {y_val_normalized}')
+
 # Initialize the neural network and train
-nn = NeuralNetwork(input_size=1, hidden_size=8, output_size=1)
+nn = NeuralNetwork(input_size=1, hidden_size=4, output_size=1)
 training_losses, validation_losses = nn.train(x_normalized, y_normalized, x_val_normalized, y_val_normalized, epochs=1000, learning_rate=0.0001, batch_size=32)
 
 
