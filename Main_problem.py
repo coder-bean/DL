@@ -165,9 +165,42 @@ def denormalize(normalized_data, col_min_max):
         return denormalized_data
     else:
         raise TypeError("Input data must be a pandas DataFrame or numpy array.")
+# Normalization function to scale data between 0 and 1
+def log_normalize(data):
+    col_min_max = {}
+    if isinstance(data, pd.DataFrame):
+        normalized_data = data.apply(lambda col: (col - col.min()) / (col.max() - col.min()), axis=0)
+        col_min_max = {col: (data[col].min(), data[col].max()) for col in data.columns}
+        return normalized_data, col_min_max
+    elif isinstance(data, np.ndarray):
+        normalized_data = np.zeros_like(data)
+        col_min_max = {}
+        for i in range(data.shape[1]):
+            col = data[:, i]
+            minim, maxim = col.min(), col.max()
+            normalized_data[:, i] = (col - minim) / (maxim - minim)
+            col_min_max[i] = (minim, maxim)
+        return normalized_data, col_min_max
+    else:
+        raise TypeError("Input data must be a pandas DataFrame or numpy array.")
+
+# Denormalization function to revert data to original scale
+def log_denormalize(normalized_data, col_min_max):
+    if isinstance(normalized_data, pd.DataFrame):
+        denormalized_data = normalized_data.apply(
+            lambda col: col_min_max[col.name][0] + col * (col_min_max[col.name][1] - col_min_max[col.name][0]), axis=0)
+        return denormalized_data
+    elif isinstance(normalized_data, np.ndarray):
+        denormalized_data = np.zeros_like(normalized_data)
+        for i in range(normalized_data.shape[1]):
+            minim, maxim = col_min_max[i]
+            denormalized_data[:, i] = minim + normalized_data[:, i] * (maxim - minim)
+        return denormalized_data
+    else:
+        raise TypeError("Input data must be a pandas DataFrame or numpy array.")
 
 x_normalized, x_min_max=normalize(x)
-y_normalized, y_min_max=normalize(y)
+y_normalized, y_min_max=log_normalize(y)
 test_x= x_normalized[8612:]
 test_y = y_normalized[8612:]
 train_x, train_y, val_x, val_y = [], [], [], []
