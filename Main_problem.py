@@ -120,13 +120,13 @@ class NeuralNetwork:
 
             # Calculate training loss using MAPE
             full_output = self.forward(x)
-            train_loss = np.mean(np.abs((y - full_output) / np.where(np.abs(y) > 0.1000000000, y, 1))) * 100
+            train_loss = np.mean(np.abs((y - full_output) / np.where(np.abs(y) > 0.01000000000, y, 1))) * 100
             training_losses.append(train_loss)
             
 
             # Calculate validation loss (using MAPE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.abs((y_val - val_output) / np.where(np.abs(y_val) > 0.1000000000, y_val, 1))) * 100
+            val_loss = np.mean(np.abs((y_val - val_output) / np.where(np.abs(y_val) > 0.01000000000, y_val, 1))) * 100
             validation_losses.append(val_loss)
             if epoch % 10 == 0:
                 print(f'Epoch {epoch}, Training MAPE: {train_loss}, Validation MSE: {val_loss}')
@@ -249,7 +249,7 @@ val_y = np.array(val_y)
 
 # Initialize the neural network and train
 nn = NeuralNetwork(input_size=4, hidden_size=8, output_size=1)
-training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, epochs=1000, learning_rate=0.0001, batch_size=64)
+training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, epochs=1000, learning_rate=0.001, batch_size=64)
 
 
 # Plot training vs validation loss
