@@ -28,13 +28,24 @@ def he_initialization(shape):
 
 # Neural Network class
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, lambda_reg=0.01, beta=0.9):
         self.weights_hidden_input = he_initialization((input_size, hidden_size))
         self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
         self.weights_hidden_output = he_initialization((hidden_size, output_size))
         self.bias_hidden_1 = np.zeros((1, hidden_size))
         self.bias_hidden_2 = np.zeros((1, hidden_size))
         self.bias_output = np.zeros((1, output_size))
+        self.lambda_reg = lambda_reg
+        self.beta = beta  # Momentum coefficient
+
+        # Initialize momentum terms for weights and biases
+        self.v_weights_hidden_input = np.zeros_like(self.weights_hidden_input)
+        self.v_weights_hidden_1_2 = np.zeros_like(self.weights_hidden_1_2)
+        self.v_weights_hidden_output = np.zeros_like(self.weights_hidden_output)
+        self.v_bias_hidden_1 = np.zeros_like(self.bias_hidden_1)
+        self.v_bias_hidden_2 = np.zeros_like(self.bias_hidden_2)
+        self.v_bias_output = np.zeros_like(self.bias_output)
+
 
     def forward(self, x):
         self.hidden_layer_1_input = np.dot(x, self.weights_hidden_input) + self.bias_hidden_1
@@ -58,15 +69,33 @@ class NeuralNetwork:
         hidden_1_error = hidden_2_delta.dot(self.weights_hidden_1_2.T)
         hidden_1_delta = hidden_1_error * ddxtanhx(self.hidden_layer_1_output)
 
-        # Update weights with L2 regularization
-        self.weights_hidden_output += (self.hidden_layer_2_output.T.dot(output_delta) - lambda_reg * self.weights_hidden_output) * learning_rate
-        self.bias_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
+        # Calculate updates for weights and biases with L2 regularization and momentum
+        # Update weights_hidden_output
+        grad_weights_hidden_output = self.hidden_layer_2_output.T.dot(output_delta) - lambda_reg * self.weights_hidden_output
+        self.v_weights_hidden_output = self.beta * self.v_weights_hidden_output + (1 - self.beta) * grad_weights_hidden_output
+        self.weights_hidden_output += self.v_weights_hidden_output * learning_rate
 
-        self.weights_hidden_1_2 += (self.hidden_layer_1_output.T.dot(hidden_2_delta) - lambda_reg * self.weights_hidden_1_2) * learning_rate
-        self.bias_hidden_2 += np.sum(hidden_2_delta, axis=0, keepdims=True) * learning_rate
+        grad_bias_output = np.sum(output_delta, axis=0, keepdims=True)
+        self.v_bias_output = self.beta * self.v_bias_output + (1 - self.beta) * grad_bias_output
+        self.bias_output += self.v_bias_output * learning_rate
 
-        self.weights_hidden_input += (x.T.dot(hidden_1_delta) - lambda_reg * self.weights_hidden_input) * learning_rate
-        self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
+        # Update weights_hidden_1_2
+        grad_weights_hidden_1_2 = self.hidden_layer_1_output.T.dot(hidden_2_delta) - lambda_reg * self.weights_hidden_1_2
+        self.v_weights_hidden_1_2 = self.beta * self.v_weights_hidden_1_2 + (1 - self.beta) * grad_weights_hidden_1_2
+        self.weights_hidden_1_2 += self.v_weights_hidden_1_2 * learning_rate
+
+        grad_bias_hidden_2 = np.sum(hidden_2_delta, axis=0, keepdims=True)
+        self.v_bias_hidden_2 = self.beta * self.v_bias_hidden_2 + (1 - self.beta) * grad_bias_hidden_2
+        self.bias_hidden_2 += self.v_bias_hidden_2 * learning_rate
+
+        # Update weights_hidden_input
+        grad_weights_hidden_input = x.T.dot(hidden_1_delta) - lambda_reg * self.weights_hidden_input
+        self.v_weights_hidden_input = self.beta * self.v_weights_hidden_input + (1 - self.beta) * grad_weights_hidden_input
+        self.weights_hidden_input += self.v_weights_hidden_input * learning_rate
+
+        grad_bias_hidden_1 = np.sum(hidden_1_delta, axis=0, keepdims=True)
+        self.v_bias_hidden_1 = self.beta * self.v_bias_hidden_1 + (1 - self.beta) * grad_bias_hidden_1
+        self.bias_hidden_1 += self.v_bias_hidden_1 * learning_rate
 
 
     def train(self, x, y, x_val, y_val, epochs, learning_rate, batch_size):
