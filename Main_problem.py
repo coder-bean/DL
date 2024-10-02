@@ -28,7 +28,7 @@ def he_initialization(shape):
 
 # Neural Network class
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size, lambda_reg=0.001):
+    def __init__(self, input_size, hidden_size, output_size, lambda_reg=0.01):
         self.weights_hidden_input = he_initialization((input_size, hidden_size))
         self.weights_hidden_1_2 = he_initialization((hidden_size, hidden_size))
         self.weights_hidden_output = he_initialization((hidden_size, output_size))
@@ -45,13 +45,13 @@ class NeuralNetwork:
         self.hidden_layer_2_output = tanh(self.hidden_layer_2_input)
         
         self.output_layer_input = np.dot(self.hidden_layer_2_output, self.weights_hidden_output) + self.bias_output
-        self.output = logistic(self.output_layer_input)
+        self.output = tanh(self.output_layer_input)
         
         return self.output
 
     def backward(self, x, y, learning_rate, lambda_reg=0.01):
         output_error = y - self.output
-        output_delta = output_error * ddxlogistic(self.output)
+        output_delta = output_error * ddxtanhx(self.output)
 
         hidden_2_error = output_delta.dot(self.weights_hidden_output.T)
         hidden_2_delta = hidden_2_error * ddxtanhx(self.hidden_layer_2_output)
@@ -68,9 +68,14 @@ class NeuralNetwork:
 
         self.weights_hidden_input += (x.T.dot(hidden_1_delta) - lambda_reg * self.weights_hidden_input) * learning_rate
         self.bias_hidden_1 += np.sum(hidden_1_delta, axis=0, keepdims=True) * learning_rate
+    def test(self, x_test, y_test):
+        x_test = np.array(x_test)
+        y_test = np.array(y_test)
+        test_output = self.forward(x_test)
+        test_loss = np.mean(np.abs((y_test - test_output) / (y_test + 1e-2))) * 100  # Add a small constant to avoid division by zero
+        return test_loss
 
-
-    def train(self, x, y, x_val, y_val, epochs, learning_rate, batch_size):
+    def train(self, x, y, x_val, y_val, test_x, test_y, epochs, learning_rate, batch_size):
         x = np.array(x)
         y = np.array(y)
         data_size = len(x)
@@ -92,16 +97,15 @@ class NeuralNetwork:
 
             # Calculate training loss using MAPE
             full_output = self.forward(x)
-            train_loss = np.mean(np.abs((y - full_output) / np.where(np.abs(y) > 0.1000000000, y, 1))) * 100
+            train_loss = np.mean(np.abs((y - full_output) / (y + 1e-2))) * 100
             training_losses.append(train_loss)
-            
 
             # Calculate validation loss (using MAPE)
             val_output = self.forward(x_val)
-            val_loss = np.mean(np.abs((y_val - val_output) / np.where(np.abs(y_val) > 0.1000000000, y_val, 1))) * 100
+            val_loss = np.mean(np.abs((y_val - val_output) / (y_val + 1e-2))) * 100  # Add a small constant to avoid division by zero
             validation_losses.append(val_loss)
             if epoch % 10 == 0:
-                print(f'Epoch {epoch}, Training MAPE: {train_loss}, Validation MSE: {val_loss}')
+                print(f'Epoch {epoch}, Training MAPE: {train_loss}, Validation MAPE: {val_loss}')
                 plot.scatter(x[:, 0], y[:, 0], label='True Data', alpha=0.6)
                 plot.scatter(x[:,0], full_output, label=f'Approximation at epoch {epoch}', color='red')
                 if not os.path.exists('plots'):
@@ -112,6 +116,8 @@ class NeuralNetwork:
                 filenames.append(filename)
                 plot.savefig(filename)
                 plot.close()
+        
+        print(f'test loss: {self.test(test_x, test_y)}')
         return training_losses, validation_losses
 
 # Define activation functions and their derivatives
@@ -120,17 +126,6 @@ def tanh(x):
 
 def ddxtanhx(x):
     return (1 / np.cosh(x) ** 2)
-def logistic(x):
-    return 1 / (1 + np.exp(-x))
-
-def ddxlogistic(x):
-    log = logistic(x)
-    return log * (1 - log)
-def relu(x):
-    return np.maximum(0, x)
-
-def ddxrelu(x):
-    return np.where(x > 0, 1, 0)
 
 # Normalize function
 def normalize(data):
@@ -188,7 +183,7 @@ val_y = np.array(val_y)
 
 # Initialize the neural network and train
 nn = NeuralNetwork(input_size=4, hidden_size=8, output_size=1)
-training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, epochs=1000, learning_rate=0.0001, batch_size=64)
+training_losses, validation_losses = nn.train(train_x, train_y, val_x, val_y, test_x, test_y, epochs=1000, learning_rate=0.001, batch_size=32)
 
 
 # Plot training vs validation loss
